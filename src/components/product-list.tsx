@@ -4,7 +4,9 @@ import { wixClientServer } from "@/lib/wix-client-server";
 import { products } from "@wix/stores";
 import DOMPurify from "isomorphic-dompurify";
 
-const PRODUCT_PER_PAGE = 20;
+import product from "../../public/product.png";
+import Pagination from "./pagination";
+const PRODUCT_PER_PAGE = 10;
 
 const ProductList = async ({
   categoryId,
@@ -17,12 +19,39 @@ const ProductList = async ({
 }) => {
   const wixClient = await wixClientServer();
 
-  const response = await wixClient.products
+  const productQuery = wixClient.products
     .queryProducts()
-    .eq("collectionIds", "categoryId")
+    .startsWith("name", searchParams?.name || "")
+    .eq("collectionIds", categoryId)
+    .hasSome(
+      "productType",
+      searchParams?.type ? [searchParams.type] : ["physical", "digital"]
+    )
+    .gt("priceData.price", searchParams?.min || 0)
+    .lt("priceData.price", searchParams?.max || 999999)
     .limit(limit || PRODUCT_PER_PAGE)
-    .find();
-  response.items.map((product) => console.log(product, "log::"));
+    .skip(
+      searchParams?.page
+        ? parseInt(searchParams.page) * (limit || PRODUCT_PER_PAGE)
+        : 0
+    );
+
+  if (searchParams?.sort) {
+    const [sortType, sortBy] = searchParams.sort.split(" ");
+
+    if (sortType === "asc") {
+      productQuery.ascending(sortBy);
+    }
+
+    if (sortType === "desc") {
+      productQuery.descending(sortBy);
+    }
+  }
+  console.log("log product list page.tsx");
+
+  const response = await productQuery.find();
+
+  console.log("Fetched products: log", response.items);
 
   return (
     <div className="m-12 flex gap-x-8 gap-y-16 justify-between flex-wrap">
@@ -31,10 +60,14 @@ const ProductList = async ({
           <Link
             href={"/" + product.slug}
             className="w-full flex flex-col gap-4 sm:w-[45%] lg:w-[22%]"
+            key={product._id}
           >
             <div className="relative w-full h-80">
               <Image
-                src={product.media?.mainMedia?.image?.url || "/product.png"}
+                src={
+                  product.media?.mainMedia?.image?.url ||
+                  "../../public/product.png"
+                }
                 alt=""
                 fill
                 sizes="25vw"
@@ -42,7 +75,10 @@ const ProductList = async ({
               />
               {product.media?.items && (
                 <Image
-                  src={product.media?.items[1]?.image?.url || "/product.png"}
+                  src={
+                    product.media?.items[1]?.image?.url ||
+                    "../../public/product.png"
+                  }
                   alt=""
                   fill
                   sizes="25vw"
@@ -72,6 +108,14 @@ const ProductList = async ({
           </Link>
         );
       })}
+      {searchParams?.cat ||
+        (searchParams?.name && (
+          <Pagination
+            currentPage={response.currentPage || 0}
+            hasPrev={response.hasPrev()}
+            hasNext={response.hasNext()}
+          />
+        ))}
     </div>
   );
 };

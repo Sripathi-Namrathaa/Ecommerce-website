@@ -39,17 +39,22 @@ const SinglePage = async ({ params }: { params: { slug: string } }) => {
           </div>
         )}
         <div className="h-[2px] bg-gray-100" />
-        {product.variants && product.productOptions && (
+        {product.variants && product.productOptions ? (
           <CustomizeProducts
             productId={product._id!}
             variants={product.variants}
             productOptions={product.productOptions}
           />
+        ) : (
+          <Add
+            productId={product._id || ""}
+            variantId="00000000-000000-000000-000000000001"
+            stockNumber={product.stock?.quantity || 0}
+          />
         )}
-        <Add />
         <div className="h-[2px] bg-gray-100" />
-        {product.additionalInfoSections?.map((section: any) => (
-          <div className="text-sm">
+        {product.additionalInfoSections?.map((section: any, index: number) => (
+          <div className="text-sm" key={index}>
             <h4 className="font-medium mb-4">{section.title}</h4>
             <p>{section.description}</p>
           </div>

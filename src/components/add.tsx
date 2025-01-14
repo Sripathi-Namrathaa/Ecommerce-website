@@ -1,20 +1,31 @@
 "use client";
 
+import { useCartStore } from "@/hooks/use-cart-store";
+import { useWixClient } from "@/hooks/use-wix-client";
 import { useState } from "react";
 
-const Add = () => {
+const Add = ({
+  productId,
+  variantId,
+  stockNumber,
+}: {
+  productId: string;
+  variantId: string;
+  stockNumber: number;
+}) => {
+  const wixClient = useWixClient();
   const [quantity, setQuantity] = useState(1);
-
-  const stock = 4;
 
   const handleQuantity = (type: "i" | "d") => {
     if (type === "d" && quantity > 1) {
       setQuantity((prev) => prev - 1);
     }
-    if (type === "i" && quantity < stock) {
+    if (type === "i" && quantity < stockNumber) {
       setQuantity((prev) => prev + 1);
     }
   };
+
+  const { addItem, isLoading } = useCartStore();
 
   return (
     <div className="flex flex-col gap-4">
@@ -37,11 +48,20 @@ const Add = () => {
             </button>
           </div>
         </div>
-        <div className="text-xs">
-          Only <span className="text-orange-500">4 items</span> left!
-          <br /> {"Don't"} miss it
-        </div>
-        <button className="w-36 text-sm rounded-3xl ring-1 ring-light-orange text-light-orange py-2 px-4 hover:bg-light-orange hover:text-white disabled:cursor-not-allowed disabled:bg-pink-200 disabled:text-white disabled:ring-none">
+        {stockNumber < 1 ? (
+          <div className="text-xs">Product is out of stock</div>
+        ) : (
+          <div className="text-xs">
+            Only <span className="text-orange-500">{stockNumber} items</span>{" "}
+            left!
+            <br /> {"Don't"} miss it
+          </div>
+        )}
+        <button
+          className="w-36 text-sm rounded-3xl ring-1 ring-light-orange disabled:ring-0 text-light-orange py-2 px-4 hover:bg-light-orange hover:text-white disabled:cursor-not-allowed disabled:bg-pink-200 disabled:text-white disabled:ring-none"
+          onClick={() => addItem(wixClient, productId, variantId, quantity)}
+          disabled={isLoading}
+        >
           Add to Cart
         </button>
       </div>
